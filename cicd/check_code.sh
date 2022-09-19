@@ -18,6 +18,7 @@ cd website
 npm run format
 npm run lint
 npm run check
+npm run test
 printf "\n"
 
 end=$(date +%s)
