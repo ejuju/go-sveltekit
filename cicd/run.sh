@@ -2,13 +2,13 @@
 
 printf 'Running app image: %s \n' "$REPO"
 
-[[ -z "$REPO" ]]; REPO="localhost/go-sveltekit"
+if test -z "$REPO"; then REPO="localhost/go-sveltekit"; fi
 printf 'With REPO: %s \n' "$REPO"
 
-[[ -z "$TAG" ]]; TAG="$(git rev-parse --short HEAD)"
+if test -z "$TAG"; then TAG="$(git rev-parse --short HEAD)"; fi
 printf 'With TAG: %s \n' "$TAG"
 
-[[ -z "$PORT" ]]; PORT="3420"
+if test -z "$PORT"; then PORT="3420"; fi
 printf 'With PORT: %s \n' "$PORT"
 
 podman run \

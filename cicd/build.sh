@@ -2,10 +2,10 @@
 
 start=$(date +%s)
 
-[[ -z "$REPO" ]]; REPO="localhost/go-sveltekit"
+if test -z "$REPO"; then REPO="localhost/go-sveltekit"; fi
 printf 'Using repo: %s \n' "$REPO"
 
-[[ -z "$TAG" ]]; TAG="$(git rev-parse --short HEAD)"
+if test -z "$TAG"; then TAG="$(git rev-parse --short HEAD)"; fi
 printf 'Using tag: %s \n' "$TAG"
 
 podman build . \

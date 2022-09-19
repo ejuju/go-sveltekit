@@ -9,7 +9,8 @@ WORKDIR /usr/local/go/app
 COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 COPY . .
-COPY --from=build-website /src/build ./website/build
+COPY --from=build-website /src/build ./website
+run ls ./website/build
 ARG CGO_ENABLED=0
 RUN go build -ldflags "-s -w" -o ./main .
 
