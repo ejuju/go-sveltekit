@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ejuju/go-sveltekit/pkg/fsutil"
 	"github.com/ejuju/go-sveltekit/pkg/httputils"
 	"github.com/ejuju/go-sveltekit/website"
 	"github.com/gorilla/mux"
@@ -37,6 +38,12 @@ func main() {
 
 	websiteFS := website.FS
 	httpWebsiteHandler := http.FileServer(http.FS(websiteFS))
+
+	// debug: print website files
+	err = fsutil.PrintFiles(websiteFS)
+	if err != nil {
+		panic(err)
+	}
 
 	// init backend api
 	httpBackendHandler := mux.NewRouter()
