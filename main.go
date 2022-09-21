@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -17,7 +16,6 @@ import (
 )
 
 type HTTPRouter struct {
-	IndexPage          []byte
 	WebsiteHTTPHandler http.Handler
 	BackendHTTPHandler http.Handler
 }
@@ -47,14 +45,14 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("unable to get website build sub file-system: %w", err))
 	}
-	rawIndexPage, err := websiteFS.Open("index.html")
-	if err != nil {
-		panic(fmt.Errorf("unable to open index.html page: %w", err))
-	}
-	indexPage, err := ioutil.ReadAll(rawIndexPage)
-	if err != nil {
-		panic(fmt.Errorf("unable to read index.html page: %w", err))
-	}
+	// rawFallbackPage, err := websiteFS.Open("404.html")
+	// if err != nil {
+	// 	panic(fmt.Errorf("unable to open index.html page: %w", err))
+	// }
+	// fallbackPage, err := ioutil.ReadAll(rawFallbackPage)
+	// if err != nil {
+	// 	panic(fmt.Errorf("unable to read index.html page: %w", err))
+	// }
 
 	// Print website files for debugging
 	err = fsutil.LogFiles(logger, logutil.LogLevelDebug, websiteFS)
@@ -63,7 +61,8 @@ func main() {
 	}
 
 	// Init website handler
-	httpWebsiteHandler := http.FileServer(http.FS(websiteFS))
+	httpWebsiteHandler := mux.NewRouter()
+	httpWebsiteHandler.PathPrefix("/").Handler(http.FileServer(http.FS(websiteFS)))
 
 	// Init backend HTTP router
 	httpBackendHandler := mux.NewRouter()
@@ -71,7 +70,6 @@ func main() {
 
 	// Init HTTP router wrapper
 	var httpHandler http.Handler = &HTTPRouter{
-		IndexPage:          indexPage,
 		WebsiteHTTPHandler: httpWebsiteHandler,
 		BackendHTTPHandler: httpBackendHandler,
 	}
