@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -9,11 +11,13 @@ import (
 
 	"github.com/ejuju/go-sveltekit/pkg/fsutil"
 	"github.com/ejuju/go-sveltekit/pkg/httputils"
+	"github.com/ejuju/go-sveltekit/pkg/logutil"
 	"github.com/ejuju/go-sveltekit/website"
 	"github.com/gorilla/mux"
 )
 
 type HTTPRouter struct {
+	IndexPage          []byte
 	WebsiteHTTPHandler http.Handler
 	BackendHTTPHandler http.Handler
 }
@@ -21,7 +25,6 @@ type HTTPRouter struct {
 // This function routes requests to the appropriate handler
 // depending if they are for the backend API or the file server (= website files).
 func (httpRouter *HTTPRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("New request on endpoint: ", r.URL.Path) // debug
 	if !strings.HasPrefix(r.URL.Path, "/api/") {
 		httpRouter.WebsiteHTTPHandler.ServeHTTP(w, r)
 		return
@@ -31,29 +34,48 @@ func (httpRouter *HTTPRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 func main() {
+	logger := &logutil.DefaultLogger{}
+
+	// Get HTTP port from environment variable
 	port, err := strconv.Atoi(os.Getenv("PORT"))
 	if err != nil {
 		panic(fmt.Errorf("invalid port number: %w", err))
 	}
 
-	websiteFS := website.FS
-	httpWebsiteHandler := http.FileServer(http.FS(websiteFS))
-
-	// debug: print website files
-	err = fsutil.PrintFiles(websiteFS)
+	// Get website build sub file-system
+	websiteFS, err := fs.Sub(website.BuildFS, "build")
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("unable to get website build sub file-system: %w", err))
+	}
+	rawIndexPage, err := websiteFS.Open("index.html")
+	if err != nil {
+		panic(fmt.Errorf("unable to open index.html page: %w", err))
+	}
+	indexPage, err := ioutil.ReadAll(rawIndexPage)
+	if err != nil {
+		panic(fmt.Errorf("unable to read index.html page: %w", err))
 	}
 
-	// init backend api
+	// Print website files for debugging
+	err = fsutil.LogFiles(logger, logutil.LogLevelDebug, websiteFS)
+	if err != nil {
+		panic(fmt.Errorf("unable to log website static files: %w", err))
+	}
+
+	// Init website handler
+	httpWebsiteHandler := http.FileServer(http.FS(websiteFS))
+
+	// Init backend HTTP router
 	httpBackendHandler := mux.NewRouter()
 	httpBackendHandler.HandleFunc("/api/v1/", httputils.NotImplementedHandlerFunc)
 
-	// init higher level http router
-	httpHandler := &HTTPRouter{
+	// Init HTTP router wrapper
+	var httpHandler http.Handler = &HTTPRouter{
+		IndexPage:          indexPage,
 		WebsiteHTTPHandler: httpWebsiteHandler,
 		BackendHTTPHandler: httpBackendHandler,
 	}
+	httpHandler = logutil.NewHTTPLoggerMiddleware(logger)(httpHandler)
 
 	httpServer := &http.Server{
 		Addr:    ":" + strconv.Itoa(port),
@@ -61,7 +83,7 @@ func main() {
 		// todo: set defaults
 	}
 
-	fmt.Printf("starting HTTP server on port %d \n", port)
+	logger.Log(logutil.LogLevelInfo, "Starting HTTP server on port "+strconv.Itoa(port))
 	err = httpServer.ListenAndServe()
 	if err != nil {
 		panic(err)

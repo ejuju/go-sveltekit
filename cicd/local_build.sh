@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 start=$(date +%s)
 
 if test -z "$REPO"; then REPO="localhost/go-sveltekit"; fi
@@ -8,7 +10,7 @@ printf 'Using repo: %s \n' "$REPO"
 if test -z "$TAG"; then TAG="$(git rev-parse --short HEAD)"; fi
 printf 'Using tag: %s \n' "$TAG"
 
-podman build . \
+sudo docker build . \
     -f ./containerfile \
     -t "$REPO:$TAG" \
     --progress plain

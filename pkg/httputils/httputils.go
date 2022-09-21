@@ -2,27 +2,22 @@ package httputils
 
 import (
 	"net/http"
-	"os"
 )
 
 func NotImplementedHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "text/plain")
 	w.Write([]byte("Not implemented yet."))
 }
 
-type FileServer struct {
-	config FileServerConfig
+// StatusRecorder implements the http.ResponseWriter interface.
+// It stores the last status code passed to the underlying response writer
+type StatusRecorder struct {
+	http.ResponseWriter
+	Status int
 }
 
-type FileServerConfig struct {
-	Files map[string]os.File
-}
-
-func NewFileServer() *FileServer {
-
-	return &FileServer{}
-}
-
-func (f *FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
+func (w *StatusRecorder) WriteHeader(statusCode int) {
+	w.Status = statusCode
+	w.ResponseWriter.WriteHeader(statusCode)
 }
