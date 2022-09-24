@@ -9,6 +9,8 @@ go mod tidy
 go mod verify
 go vet ./...
 CGO_ENABLED=1 go test ./... \
+    -v \
+    -cover \
     -race \
     -timeout=60s
 printf "\n"
